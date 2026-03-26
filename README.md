@@ -35,8 +35,8 @@ Live URL: [https://crushing-videos.vercel.app](https://crushing-videos.vercel.ap
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/ikennarichard/crushing-videos.git
-cd crushing-videos
+git clone https://github.com/ikennarichard/vidmetrics-analyzer.git
+cd vidmetrics-analyzer
 ```
 
 2. **Install dependencies**
