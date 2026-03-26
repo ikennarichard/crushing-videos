@@ -1,8 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { calculateScore, extractChannelInfo, fetchChannelVideos } from "@/lib/youtube";
-import { useState } from "react";
+import {
+  calculateScore,
+  extractChannelInfo,
+  fetchChannelVideos,
+} from "@/lib/youtube";
+import { useMemo, useState } from "react";
 import VideoTable from "./video-table";
 
 export default function ChannelInput() {
@@ -11,6 +15,19 @@ export default function ChannelInput() {
   );
   const [error, setError] = useState("");
   const [videos, setVideos] = useState<any[]>([]);
+  const [sortBy, setSortBy] = useState<"score" | "views" | "likes">("score");
+
+  const sortVideos = (videos: any[], type: string) => {
+    return [...videos].sort((a, b) => {
+      if (type === "views") {
+        return Number(b.statistics.viewCount) - Number(a.statistics.viewCount);
+      }
+      if (type === "likes") {
+        return Number(b.statistics.likeCount) - Number(a.statistics.likeCount);
+      }
+      return b.score - a.score;
+    });
+  };
 
   const handleAnalyze = async () => {
     const result = extractChannelInfo(url);
@@ -29,13 +46,17 @@ export default function ChannelInput() {
         ...v,
         score: calculateScore(v),
       }));
-      enriched.sort((a: any, b: any) => b.score - a.score);
-      setVideos(enriched);
+      const sorted = sortVideos(enriched, sortBy);
+      setVideos(sorted);
     } catch (err) {
       console.error("Failed to fetch videos", err);
       setError("Failed to fetch data");
     }
   };
+
+  const sortedVideos = useMemo(() => {
+    return sortVideos(videos, sortBy);
+  }, [videos, sortBy]);
 
   return (
     <>
@@ -56,8 +77,36 @@ export default function ChannelInput() {
             <Button onClick={handleAnalyze}>Analyze</Button>
           </div>
         </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setSortBy("score")}
+            className={`px-3 py-1 text-sm rounded ${
+              sortBy === "score" ? "bg-white text-black" : "bg-white/10"
+            }`}
+          >
+            Score
+          </button>
+
+          <button
+            onClick={() => setSortBy("views")}
+            className={`px-3 py-1 text-sm rounded ${
+              sortBy === "views" ? "bg-white text-black" : "bg-white/10"
+            }`}
+          >
+            Views
+          </button>
+
+          <button
+            onClick={() => setSortBy("likes")}
+            className={`px-3 py-1 text-sm rounded ${
+              sortBy === "likes" ? "bg-white text-black" : "bg-white/10"
+            }`}
+          >
+            Likes
+          </button>
+        </div>
       </Card>
-      <VideoTable videos={videos} />
+      <VideoTable videos={sortedVideos} />
     </>
   );
 }
