@@ -13,9 +13,7 @@ import VideoChart from "./video-chart";
 import VideoTable from "./video-table";
 
 export default function ChannelInput() {
-  const [url, setUrl] = useState(
-    "https://www.youtube.com/channel/UCZKlRAremXc5AfWgkFWgQDg",
-  );
+  const [url, setUrl] = useState("");
   const [error, setError] = useState("");
   const [videos, setVideos] = useState<any[]>([]);
   const [sortBy, setSortBy] = useState<"score" | "views" | "likes">("score");
