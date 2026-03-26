@@ -27,7 +27,7 @@ export default function VideoTable({ videos }: { videos: Video[] }) {
           {videos.map((video, index) => (
             <tr
               key={video.id}
-              className={`border-b border-white/5 hover:bg-white/5 ${
+              className={`border-b border-white/5 hover:bg-white/5  ${
                 index === 0 ? "bg-green-500/10" : ""
               }`}
             >

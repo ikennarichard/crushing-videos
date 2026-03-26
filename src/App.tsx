@@ -6,7 +6,7 @@ export default function App() {
     <div className="min-h-screen bg-neutral-950 text-white">
       <Header />
 
-      <main className="max-w-4xl mx-auto px-6 py-10">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
         <ChannelInput />
       </main>
     </div>

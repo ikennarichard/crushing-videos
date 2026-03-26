@@ -35,7 +35,7 @@ export default function VideoChart({ videos, title }: { videos: any[], title: st
             dataKey="score"
             fill="#888"
             radius={[10, 10, 0, 0]}
-            activeBar={<Rectangle fill="#38f376" />}
+            activeBar={<Rectangle fill="#22c55e" />}
           />
         </BarChart>
       </ResponsiveContainer>

@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { exportToCSV } from "@/lib/export";
 import {
   calculateScore,
   extractChannelInfo,
@@ -67,7 +68,9 @@ export default function ChannelInput() {
     <>
       <Card className="p-6 bg-neutral-900 border-white/10">
         <div className="flex flex-col gap-4">
-          <h2 className="text-lg font-medium text-white">Analyze Youtube Channel</h2>
+          <h2 className="text-lg font-medium text-white">
+            Analyze Youtube Channel
+          </h2>
           <p className="text-sm text-neutral-400">
             Discover which videos are performing best
           </p>
@@ -111,6 +114,13 @@ export default function ChannelInput() {
           >
             Likes
           </button>
+          <button
+            onClick={() => exportToCSV(videos)}
+            disabled={videos.length === 0}
+            className="text-white mr-2 disabled:opacity-50 cursor-none pointer-events-none"
+          >
+            Export CSV
+          </button>
         </div>
       </Card>
       {loading && (
@@ -127,8 +137,10 @@ export default function ChannelInput() {
           Paste a YouTube channel URL to analyze performance.
         </p>
       )}
-      <VideoChart videos={sortedVideos} title={sortBy} />
-      <VideoTable videos={sortedVideos} />
+      <div className="mt-6 space-y-6">
+        <VideoChart videos={sortedVideos} title={sortBy} />
+        <VideoTable videos={sortedVideos} />
+      </div>
     </>
   );
 }
