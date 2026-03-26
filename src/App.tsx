@@ -1,9 +1,14 @@
+import ChannelInput from "@/components/channel-input";
+import Header from "./components/header";
+
 export default function App() {
   return (
-    <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center">
-      <h1 className="text-2xl font-semibold">
-        Crushing Videos
-      </h1>
+    <div className="min-h-screen bg-neutral-950 text-white">
+      <Header />
+
+      <main className="max-w-4xl mx-auto px-6 py-10">
+        <ChannelInput />
+      </main>
     </div>
   );
 }
