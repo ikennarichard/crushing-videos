@@ -174,7 +174,7 @@ export default function ChannelInput() {
         </div>
       )}
       <div className="mt-6 space-y-6">
-        <VideoChart videos={sortedVideos} title={sortBy} />
+        <VideoChart videos={sortedVideos} />
         <VideoTable videos={sortedVideos} />
       </div>
     </>
