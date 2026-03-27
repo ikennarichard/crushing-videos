@@ -1,5 +1,3 @@
-import { timeAgo } from "@/lib/utils";
-
 type Video = {
   id: string;
   snippet: any;
@@ -15,6 +13,7 @@ export default function VideoTable({ videos }: { videos: Video[] }) {
     videos.reduce((sum, v) => sum + Number(v.statistics.viewCount), 0) /
       videos.length,
   );
+
   if (!videos.length) return null;
 
   return (
@@ -49,6 +48,17 @@ export default function VideoTable({ videos }: { videos: Video[] }) {
 
         <tbody>
           {videos.map((video, index) => {
+            const date = new Date(video.snippet.publishedAt);
+            const formatted = `${date.toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              timeZone: "UTC",
+            })} @ ${date.toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
+              timeZone: "UTC",
+            })} UTC`;
             return (
               <tr
                 key={video.id}
@@ -82,7 +92,7 @@ export default function VideoTable({ videos }: { videos: Video[] }) {
                       {video.snippet.title}
                     </span>
                     <span className="flex items-center gap-2 text-[11px] text-neutral-500">
-                      <span>{timeAgo(video.snippet.publishedAt)}</span>
+                      <span>{formatted}</span>
                     </span>
                     {video.score > 5000 && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-400 bg-green-500/10 border border-green-500/20 px-1.5 py-0.5 rounded-full w-fit">
@@ -100,7 +110,6 @@ export default function VideoTable({ videos }: { videos: Video[] }) {
                     {format(video.score)}
                   </span>
                 </td>
-                
               </tr>
             );
           })}
