@@ -76,7 +76,7 @@ export function calculateScore(video: any) {
 
 export async function getChannelIdFromVideo(videoId: string): Promise<string> {
   const res = await fetch(
-    `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${API_KEY}`,
+    `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${videoId}&key=${API_KEY}`,
   );
   const data = await res.json();
   return data.items?.[0]?.snippet?.channelId;

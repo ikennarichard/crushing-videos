@@ -11,6 +11,8 @@ const format = (num: number | string) =>
 export default function VideoTable({ videos }: { videos: Video[] }) {
   if (!videos.length) return null;
 
+  console.log(videos);
+
   return (
     <div className="mt-8 overflow-x-auto">
       <table className="w-full text-sm">
@@ -46,12 +48,26 @@ export default function VideoTable({ videos }: { videos: Video[] }) {
                   className="w-24 h-14 rounded"
                 />
                 <span
-                  className="font-medium block max-w-sm truncate"
+                  className="flex flex-col gap-1"
                   title={video.snippet.title}
                 >
-                  {video.snippet.title}{" "}
+                  <span className="font-medium block max-w-sm truncate">
+                    {video.snippet.title}
+                  </span>
+                  <span className="flex items-center gap-2 text-[11px] text-neutral-500">
+                    <span>
+                      {new Date(video.snippet.publishedAt).toLocaleDateString(
+                        "en-US",
+                        {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        },
+                      )}
+                    </span>
+                  </span>
                   {video.score > 5000 && (
-                    <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-medium text-green-400 bg-green-500/10 border border-green-500/20 px-1.5 py-0.5 rounded-full">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-400 bg-green-500/10 border border-green-500/20 px-1.5 py-0.5 rounded-full w-fit">
                       🔥 Crushing It
                     </span>
                   )}
