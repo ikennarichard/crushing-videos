@@ -94,7 +94,7 @@ export default function ChannelInput() {
             Channel Analysis
           </h2>
           <p className="text-sm text-neutral-400">
-            Paste a Youtube channel URL to see which videos are crushing it
+            Paste a Youtube channel to see which videos are crushing it
           </p>
           <div className="flex gap-2">
             <Input

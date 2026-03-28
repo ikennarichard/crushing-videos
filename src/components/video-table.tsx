@@ -3,6 +3,7 @@ type Video = {
   snippet: any;
   statistics: any;
   score: number;
+  contentDetails: any;
 };
 
 const format = (num: number | string) =>
@@ -13,6 +14,15 @@ export default function VideoTable({ videos }: { videos: Video[] }) {
     videos.reduce((sum, v) => sum + Number(v.statistics.viewCount), 0) /
       videos.length,
   );
+
+  function formatDuration(iso: string): string {
+    const [, h, m, s] = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/) ?? [];
+    if (!h && !m && !s) return "";
+
+    const pad = (n = "0") => n.padStart(2, "0");
+
+    return h ? `${h}:${pad(m)}:${pad(s)}` : `${parseInt(m ?? "0")}:${pad(s)}`;
+  }
 
   if (!videos.length) return null;
 
@@ -42,6 +52,7 @@ export default function VideoTable({ videos }: { videos: Video[] }) {
             <th className="py-3 pr-4">Views</th>
             <th className="py-3 pr-4">Likes</th>
             <th className="py-3 pr-4">Comments</th>
+            <th className="py-3 pr-4" title="Engagement Rate">Eng. Rate</th>
             <th className="py-3">Score</th>
           </tr>
         </thead>
@@ -49,6 +60,12 @@ export default function VideoTable({ videos }: { videos: Video[] }) {
         <tbody>
           {videos.map((video, index) => {
             const date = new Date(video.snippet.publishedAt);
+            const engagementRate = (
+              ((Number(video.statistics.likeCount) +
+                Number(video.statistics.commentCount)) /
+                Number(video.statistics.viewCount)) *
+              100
+            ).toFixed(2);
             const formatted = `${date.toLocaleDateString("en-US", {
               month: "short",
               day: "numeric",
@@ -91,11 +108,22 @@ export default function VideoTable({ videos }: { videos: Video[] }) {
                     <span className="font-medium block max-w-sm truncate">
                       {video.snippet.title}
                     </span>
-                    <span className="flex items-center gap-2 text-[11px] text-neutral-500">
-                      <span>{formatted}</span>
-                    </span>
+                    <div className="flex flex-col justify-center gap-1.5 text-[11px] font-medium leading-none">
+                      <span className="text-neutral-500">{formatted}</span>
+                      {video.contentDetails?.duration ? (
+                        <span className="inline-flex">
+                          <span className="text-neutral-600 rounded-sm w-fit">
+                            Duration:
+                          </span>
+                          <span className="text-neutral-500 px-1 rounded-sm w-fit">
+                            {formatDuration(video?.contentDetails?.duration)}
+                          </span>
+                        </span>
+                      ) : null}
+                    </div>
+
                     {video.score > 5000 && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-400 bg-green-500/10 border border-green-500/20 px-1.5 py-0.5 rounded-full w-fit">
+                      <span className="inline-flex mt-1 items-center gap-1 text-[10px] font-medium text-green-400 bg-green-500/10 border border-green-500/20 px-1.5 py-0.5 rounded-full w-fit">
                         🔥 Crushing It
                       </span>
                     )}
@@ -105,6 +133,7 @@ export default function VideoTable({ videos }: { videos: Video[] }) {
                 <td>{format(video.statistics.viewCount)}</td>
                 <td>{format(video.statistics.likeCount)}</td>
                 <td>{format(video.statistics.commentCount)}</td>
+                <td>{engagementRate}%</td>
                 <td>
                   <span className="font-semibold text-white tabular-nums">
                     {format(video.score)}

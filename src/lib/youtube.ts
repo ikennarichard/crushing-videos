@@ -13,7 +13,7 @@ export async function fetchChannelVideos(channelId: string) {
     .join(",");
 
   const videosRes = await fetch(
-    `https://www.googleapis.com/youtube/v3/videos?key=${API_KEY}&id=${videoIds}&part=snippet,statistics`,
+    `https://www.googleapis.com/youtube/v3/videos?key=${API_KEY}&id=${videoIds}&part=snippet,statistics,contentDetails`,
   );
 
   const videosData = await videosRes.json();
@@ -76,7 +76,7 @@ export function calculateScore(video: any) {
 
 export async function getChannelIdFromVideo(videoId: string): Promise<string> {
   const res = await fetch(
-    `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${videoId}&key=${API_KEY}`,
+    `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${videoId}&key=${API_KEY}`,
   );
   const data = await res.json();
   return data.items?.[0]?.snippet?.channelId;
