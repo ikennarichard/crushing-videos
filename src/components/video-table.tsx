@@ -8,8 +8,10 @@ type Video = {
   contentDetails: any;
 };
 
-const format = (num: number | string) =>
-  Intl.NumberFormat().format(Number(num));
+const format = (num: number | string | undefined) =>
+  num == null || isNaN(Number(num))
+    ? "—"
+    : Intl.NumberFormat().format(Number(num));
 
 export default function VideoTable({ videos }: { videos: Video[] }) {
   const avgViews = Math.round(
@@ -60,12 +62,14 @@ export default function VideoTable({ videos }: { videos: Video[] }) {
         <tbody>
           {videos.map((video, index) => {
             const date = new Date(video.snippet.publishedAt);
-            const engagementRate = (
-              ((Number(video.statistics.likeCount) +
-                Number(video.statistics.commentCount)) /
-                Number(video.statistics.viewCount)) *
-              100
-            ).toFixed(2);
+            const views = Number(video.statistics.viewCount || 0);
+            const likes = Number(video.statistics.likeCount || 0);
+            const comments = Number(video.statistics.commentCount || 0);
+
+            const engagementRate =
+              views > 0
+                ? (((likes + comments) / views) * 100).toFixed(2) + "%"
+                : "—";
             const formatted = `${date.toLocaleDateString("en-US", {
               month: "short",
               day: "numeric",
@@ -98,7 +102,7 @@ export default function VideoTable({ videos }: { videos: Video[] }) {
                         video.snippet.thumbnails.default.url
                       }
                       alt=""
-                     className="w-16 h-10 sm:w-24 sm:h-14 rounded shrink-0"
+                      className="w-16 h-10 sm:w-24 sm:h-14 rounded shrink-0"
                     />
                   </a>
                   <span
