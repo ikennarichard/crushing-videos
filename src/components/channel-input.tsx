@@ -3,25 +3,45 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { exportToCSV } from "@/lib/export";
 import {
+  saveChannel,
+  updateLastAnalyzed,
+  type SavedChannel,
+} from "@/lib/storage";
+import {
   calculateScore,
   extractChannelInfo,
+  fetchChannelInfo,
   fetchChannelVideos,
   getChannelIdFromVideo,
+  resolveCustomUrl,
   resolveHandle,
   searchChannelByName,
 } from "@/lib/youtube";
 import { ChartBar } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Skeleton } from "./ui/skeleton";
 import VideoChart from "./video-chart";
 import VideoTable from "./video-table";
 
-export default function ChannelInput() {
+export default function ChannelInput({
+  preloadChannel,
+  onSave
+}: {
+  preloadChannel: { channel: SavedChannel; ts: number } | null;
+  onSave: () => void
+}) {
   const [url, setUrl] = useState("");
   const [error, setError] = useState("");
   const [videos, setVideos] = useState<any[]>([]);
   const [sortBy, setSortBy] = useState<"score" | "views" | "likes">("score");
   const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState("");
+  const [channelMeta, setChannelMeta] = useState<{
+    id: string;
+    name: string;
+    thumbnail: string;
+  } | null>(null);
+  const [saved, setSaved] = useState(false);
 
   const sortVideos = (videos: any[], type: string) => {
     return [...videos].sort((a, b) => {
@@ -35,64 +55,96 @@ export default function ChannelInput() {
     });
   };
 
-  const handleAnalyze = async () => {
-    const result = extractChannelInfo(url);
-
-    if (!result) {
-      setError(
-        "Couldn't parse that input — try a channel URL, video URL, or channel name",
-      );
-      return;
-    }
-
-    setError("");
-    setLoading(true);
-
-    try {
-      let channelId = "";
-
-      if (result.type === "id") {
-        channelId = result.value;
-      } else if (result.type === "handle" || result.type === "custom") {
-        channelId = await resolveHandle(result.value);
-      } else if (result.type === "video") {
-        channelId = await getChannelIdFromVideo(result.value);
-      } else if (result.type === "search") {
-        channelId = await searchChannelByName(result.value);
-      }
-
-      if (!channelId) {
-        setError("Channel not found — try a different URL or name");
+  const handleAnalyze = useCallback(
+    async (preloadId?: string) => {
+      if (!url.trim() && !preloadId) {
+        setError("Please enter a channel URL or name");
         return;
       }
 
-      const videos = await fetchChannelVideos(channelId);
+      setError("");
+      setLoading(true);
+      setLoadingStep("Resolving channel...");
 
-      const enriched = videos.map((v: any) => ({
-        ...v,
-        score: calculateScore(v),
-      }));
-      const sorted = sortVideos(enriched, sortBy);
-      setVideos(sorted);
-    } catch (err) {
-      console.error("Failed to fetch videos", err);
-      setError("Failed to fetch data");
-    } finally {
-      setLoading(false);
-    }
-  };
+      try {
+        let channelId = "";
+
+        if (preloadId) {
+          channelId = preloadId;
+        } else {
+          const result = extractChannelInfo(url);
+
+          if (!result) {
+            setError(
+              "Couldn't parse that input — try a channel URL, video URL, or channel name",
+            );
+            return;
+          }
+
+          if (result.type === "id") {
+            channelId = result.value;
+          } else if (result.type === "handle") {
+            channelId = await resolveHandle(result.value);
+          } else if (result.type === "custom") {
+            channelId = await resolveCustomUrl(result.value);
+          } else if (result.type === "video") {
+            channelId = await getChannelIdFromVideo(result.value);
+          } else if (result.type === "search") {
+            channelId = await searchChannelByName(result.value);
+          }
+        }
+
+        if (!channelId) {
+          setError("Channel not found — try a different URL or name");
+          return;
+        }
+
+        setLoadingStep("Fetching channel info...");
+        const meta = await fetchChannelInfo(channelId);
+        setChannelMeta(meta);
+        setSaved(false);
+
+        setLoadingStep("Fetching videos...");
+        const rawVideos = await fetchChannelVideos(channelId);
+
+        setLoadingStep("Calculating scores...");
+        const enriched = rawVideos.map((v: any) => ({
+          ...v,
+          score: calculateScore(v),
+        }));
+
+        setVideos(sortVideos(enriched, sortBy));
+        if (channelMeta) {
+          updateLastAnalyzed(channelMeta.id);
+        }
+        setSortBy("score");
+      } catch (err) {
+        console.error("Failed to fetch videos", err);
+        setError("Something went wrong — check the URL and try again");
+      } finally {
+        setLoading(false);
+        setLoadingStep("");
+      }
+    },
+    [url, sortBy],
+  );
 
   const sortedVideos = useMemo(() => {
     return sortVideos(videos, sortBy);
   }, [videos, sortBy]);
 
+  useEffect(() => {
+    if (preloadChannel) {
+      setUrl(preloadChannel.channel.url);
+      handleAnalyze(preloadChannel.channel.id);
+    }
+  }, [preloadChannel]);
+
   return (
     <>
       <Card className="p-6 bg-neutral-900 border-white/10">
         <div className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-white">
-            Channel Analysis
-          </h2>
+          <h2 className="text-lg font-semibold text-white">Channel Analysis</h2>
           <p className="text-sm text-neutral-400">
             Paste a Youtube channel to see which videos are crushing it
           </p>
@@ -106,7 +158,7 @@ export default function ChannelInput() {
             />
 
             <Button onClick={handleAnalyze} disabled={loading}>
-              {loading ? "Analyzing..." : "Analyze"}
+              {loading ? loadingStep : "Analyze"}
             </Button>
           </div>
           {error && <p className="text-sm text-red-400">{error}</p>}
@@ -174,8 +226,49 @@ export default function ChannelInput() {
         </div>
       )}
       <div className="mt-6 space-y-6">
-        <VideoChart videos={sortedVideos} />
-        <VideoTable videos={sortedVideos} />
+        {!loading && videos.length > 0 && (
+          <div className="mt-6 space-y-6">
+            {/* channel identity + save */}
+            {channelMeta && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={channelMeta.thumbnail}
+                    className="w-8 h-8 rounded-full"
+                    alt=""
+                  />
+                  <p className="text-sm font-medium text-white">
+                    {channelMeta.name}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    saveChannel({
+                      id: channelMeta.id,
+                      name: channelMeta.name,
+                      url: url,
+                      thumbnail: channelMeta.thumbnail,
+                      lastAnalyzed: new Date().toISOString(),
+                    });
+                    setSaved(true);
+                    onSave();
+                  }}
+                  className={`text-xs px-3 py-1.5 rounded-md border transition-colors ${
+                    saved
+                      ? "border-green-500/30 text-green-400 bg-green-500/10"
+                      : "border-white/10 text-neutral-400 hover:text-white hover:border-white/20"
+                  }`}
+                >
+                  {saved ? "✓ Saved" : "+ Save Channel"}
+                </button>
+              </div>
+            )}
+
+            <VideoChart videos={sortedVideos} />
+            <VideoTable videos={sortedVideos} />
+          </div>
+        )}
       </div>
     </>
   );

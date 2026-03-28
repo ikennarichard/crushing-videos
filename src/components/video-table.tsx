@@ -36,7 +36,7 @@ export default function VideoTable({ videos }: { videos: Video[] }) {
         <div>
           <p className="text-neutral-500 text-xs">Crushing It</p>
           <p className="text-green-400 font-semibold">
-            {videos.filter((v) => v.score > 5000).length}
+            {videos.filter((v) => v.score > 2000).length}
           </p>
         </div>
         <div>
@@ -52,8 +52,15 @@ export default function VideoTable({ videos }: { videos: Video[] }) {
             <th className="py-3 pr-4">Views</th>
             <th className="py-3 pr-4">Likes</th>
             <th className="py-3 pr-4">Comments</th>
-            <th className="py-3 pr-4" title="Engagement Rate">Eng. Rate</th>
-            <th className="py-3">Score</th>
+            <th className="py-3 pr-4" title="Engagement Rate">
+              Eng. Rate
+            </th>
+            <th
+              className="py-3 pr-4 cursor-help"
+              title="Weighted score based on engagement rate and view velocity"
+            >
+              Score
+            </th>
           </tr>
         </thead>
 
@@ -98,7 +105,7 @@ export default function VideoTable({ videos }: { videos: Video[] }) {
                         video.snippet.thumbnails.default.url
                       }
                       alt=""
-                      className="w-24 h-14 rounded"
+                     className="w-16 h-10 sm:w-24 sm:h-14 rounded shrink-0"
                     />
                   </a>
                   <span
@@ -122,7 +129,7 @@ export default function VideoTable({ videos }: { videos: Video[] }) {
                       ) : null}
                     </div>
 
-                    {video.score > 5000 && (
+                    {video.score > 2000 && (
                       <span className="inline-flex mt-1 items-center gap-1 text-[10px] font-medium text-green-400 bg-green-500/10 border border-green-500/20 px-1.5 py-0.5 rounded-full w-fit">
                         🔥 Crushing It
                       </span>
