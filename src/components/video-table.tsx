@@ -1,3 +1,5 @@
+import { formatDuration } from "@/lib/utils";
+
 type Video = {
   id: string;
   snippet: any;
@@ -14,15 +16,6 @@ export default function VideoTable({ videos }: { videos: Video[] }) {
     videos.reduce((sum, v) => sum + Number(v.statistics.viewCount), 0) /
       videos.length,
   );
-
-  function formatDuration(iso: string): string {
-    const [, h, m, s] = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/) ?? [];
-    if (!h && !m && !s) return "";
-
-    const pad = (n = "0") => n.padStart(2, "0");
-
-    return h ? `${h}:${pad(m)}:${pad(s)}` : `${parseInt(m ?? "0")}:${pad(s)}`;
-  }
 
   if (!videos.length) return null;
 

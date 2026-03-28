@@ -19,16 +19,17 @@ import {
 } from "@/lib/youtube";
 import { ChartBar } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import ComparisonTable from "./comparison-table";
 import { Skeleton } from "./ui/skeleton";
 import VideoChart from "./video-chart";
 import VideoTable from "./video-table";
 
 export default function ChannelInput({
   preloadChannel,
-  onSave
+  onSave,
 }: {
   preloadChannel: { channel: SavedChannel; ts: number } | null;
-  onSave: () => void
+  onSave: () => void;
 }) {
   const [url, setUrl] = useState("");
   const [error, setError] = useState("");
@@ -42,6 +43,15 @@ export default function ChannelInput({
     thumbnail: string;
   } | null>(null);
   const [saved, setSaved] = useState(false);
+
+  const [url2, setUrl2] = useState("");
+  const [videos2, setVideos2] = useState<any[]>([]);
+  const [channelMeta2, setChannelMeta2] = useState<{
+    id: string;
+    name: string;
+    thumbnail: string;
+  } | null>(null);
+  const [comparing, setComparing] = useState(false);
 
   const sortVideos = (videos: any[], type: string) => {
     return [...videos].sort((a, b) => {
@@ -103,20 +113,54 @@ export default function ChannelInput({
         const meta = await fetchChannelInfo(channelId);
         setChannelMeta(meta);
         setSaved(false);
+        if (comparing && url2.trim()) {
+          setLoadingStep("Fetching both channels...");
 
-        setLoadingStep("Fetching videos...");
-        const rawVideos = await fetchChannelVideos(channelId);
+          const result2 = extractChannelInfo(url2);
+          let channelId2 = "";
 
-        setLoadingStep("Calculating scores...");
-        const enriched = rawVideos.map((v: any) => ({
-          ...v,
-          score: calculateScore(v),
-        }));
+          if (result2?.type === "id") channelId2 = result2.value;
+          else if (result2?.type === "handle")
+            channelId2 = await resolveHandle(result2.value);
+          else if (result2?.type === "custom")
+            channelId2 = await resolveCustomUrl(result2.value);
+          else if (result2?.type === "video")
+            channelId2 = await getChannelIdFromVideo(result2.value);
+          else if (result2?.type === "search")
+            channelId2 = await searchChannelByName(result2.value);
 
-        setVideos(sortVideos(enriched, sortBy));
-        if (channelMeta) {
-          updateLastAnalyzed(channelMeta.id);
+          const [rawVideos1, rawVideos2, meta2] = await Promise.all([
+            fetchChannelVideos(channelId),
+            fetchChannelVideos(channelId2),
+            fetchChannelInfo(channelId2),
+          ]);
+
+          setVideos(
+            sortVideos(
+              rawVideos1.map((v: any) => ({ ...v, score: calculateScore(v) })),
+              "score",
+            ),
+          );
+          setVideos2(
+            sortVideos(
+              rawVideos2.map((v: any) => ({ ...v, score: calculateScore(v) })),
+              "score",
+            ),
+          );
+          setChannelMeta2(meta2);
+        } else {
+          setLoadingStep("Fetching videos...");
+          const rawVideos = await fetchChannelVideos(channelId);
+          setVideos(
+            sortVideos(
+              rawVideos.map((v: any) => ({ ...v, score: calculateScore(v) })),
+              "score",
+            ),
+          );
         }
+
+        updateLastAnalyzed(meta.id);
+
         setSortBy("score");
       } catch (err) {
         console.error("Failed to fetch videos", err);
@@ -126,7 +170,7 @@ export default function ChannelInput({
         setLoadingStep("");
       }
     },
-    [url, sortBy],
+    [url, url2, comparing, sortBy],
   );
 
   const sortedVideos = useMemo(() => {
@@ -138,7 +182,7 @@ export default function ChannelInput({
       setUrl(preloadChannel.channel.url);
       handleAnalyze(preloadChannel.channel.id);
     }
-  }, [preloadChannel]);
+  }, [preloadChannel, handleAnalyze]);
 
   return (
     <>
@@ -146,7 +190,9 @@ export default function ChannelInput({
         <div className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold text-white">Channel Analysis</h2>
           <p className="text-sm text-neutral-400">
-            Paste a Youtube channel to see which videos are crushing it
+            {comparing
+              ? "Analyze two channels side by side"
+              : "Paste a youtube channel to see which videos are crushing it"}
           </p>
           <div className="flex gap-2">
             <Input
@@ -156,14 +202,68 @@ export default function ChannelInput({
               onChange={(e) => setUrl(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
             />
-
-            <Button onClick={() => handleAnalyze()} disabled={loading}>
+            {url && (
+              <button
+                onClick={() => setUrl("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white"
+              >
+                ✕
+              </button>
+            )}
+            <Button
+              onClick={() => handleAnalyze()}
+              disabled={loading}
+              className="hover:opacity-85 text-white font-medium px-5"
+            >
               {loading ? loadingStep : "Analyze"}
             </Button>
           </div>
+          {comparing && (
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  placeholder="Competitor channel URL or name..."
+                  className="text-white border-blue-500/30 focus:border-blue-500/60 disabled:opacity-40 max-w-lg"
+                  value={url2}
+                  onChange={(e) => setUrl2(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
+                  disabled={!videos.length}
+                />
+                {url2 && (
+                  <button
+                    onClick={() => {
+                      setUrl2("");
+                      setVideos2([]);
+                      setChannelMeta2(null);
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+          <button
+            onClick={() => {
+              if (comparing) {
+                setUrl2("");
+                setVideos2([]);
+                setChannelMeta2(null);
+              }
+              setComparing((v) => !v);
+            }}
+            className={`text-xs w-fit px-3 py-1.5 rounded-md border transition-colors ${
+              comparing
+                ? "border-green-500/30 text-green-400 bg-green-500/10"
+                : "border-white/10 text-neutral-400 hover:text-white hover:border-white/20"
+            }`}
+          >
+            {comparing ? "✕ Cancel Comparison" : "+ Compare Competitor"}
+          </button>
           {error && <p className="text-sm text-red-400">{error}</p>}
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2 mt-5">
           <button
             onClick={() => setSortBy("score")}
             className={`px-3 py-1 text-sm rounded-md transition-colors ${
@@ -197,79 +297,100 @@ export default function ChannelInput({
             Likes
           </button>
           <button
-            onClick={() => exportToCSV(sortedVideos)}
+            onClick={() => {
+              exportToCSV(sortedVideos, channelMeta?.name ?? "channel1");
+              if (comparing && videos2.length) {
+                exportToCSV(videos2, channelMeta2?.name ?? "channel2");
+              }
+            }}
             disabled={videos.length === 0}
             className="flex items-center gap-1.5 text-sm text-neutral-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
-            ↓ Export CSV
+            ↓ {comparing && videos2.length ? "Export Both CSVs" : "Export CSV"}
           </button>
         </div>
       </Card>
-      {loading && (
+      {loading ? (
         <div className="mt-6 space-y-3">
+          {loadingStep && (
+            <p className="text-xs text-neutral-500 flex items-center gap-2">
+              <span className="animate-spin inline-block">⟳</span>
+              {loadingStep}
+            </p>
+          )}
           <Skeleton className="h-6 w-1/3" />
           <Skeleton className="h-40 w-full" />
           <Skeleton className="h-6 w-full" />
           <Skeleton className="h-6 w-full" />
           <Skeleton className="h-6 w-full" />
         </div>
-      )}
+      ) : null}
+
       {!loading && videos.length === 0 && (
         <div className="mt-10 flex flex-col items-center justify-center text-center gap-2">
-          <p className="text-2xl">
-            <ChartBar />
-          </p>
+          <ChartBar className="w-8 h-8 text-neutral-600" />
           <p className="text-sm font-medium text-neutral-300">No data yet</p>
           <p className="text-xs text-neutral-500">
             Paste a YouTube channel URL above and hit Analyze
           </p>
         </div>
       )}
-      <div className="mt-6 space-y-6">
-        {!loading && videos.length > 0 && (
-          <div className="mt-6 space-y-6">
-            {/* channel identity + save */}
-            {channelMeta && (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={channelMeta.thumbnail}
-                    className="w-8 h-8 rounded-full"
-                    alt=""
-                  />
-                  <p className="text-sm font-medium text-white">
-                    {channelMeta.name}
-                  </p>
-                </div>
 
-                <button
-                  onClick={() => {
-                    saveChannel({
-                      id: channelMeta.id,
-                      name: channelMeta.name,
-                      url: url,
-                      thumbnail: channelMeta.thumbnail,
-                      lastAnalyzed: new Date().toISOString(),
-                    });
-                    setSaved(true);
-                    onSave();
-                  }}
-                  className={`text-xs px-3 py-1.5 rounded-md border transition-colors ${
-                    saved
-                      ? "border-green-500/30 text-green-400 bg-green-500/10"
-                      : "border-white/10 text-neutral-400 hover:text-white hover:border-white/20"
-                  }`}
-                >
-                  {saved ? "✓ Saved" : "+ Save Channel"}
-                </button>
+      {!loading && videos.length > 0 ? (
+        <div className="mt-6 space-y-6">
+          {channelMeta && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <img
+                  src={channelMeta.thumbnail}
+                  className="w-8 h-8 rounded-full"
+                  alt=""
+                />
+                <p className="text-sm font-medium text-white">
+                  {channelMeta.name}
+                </p>
               </div>
-            )}
 
-            <VideoChart videos={sortedVideos} />
-            <VideoTable videos={sortedVideos} />
-          </div>
-        )}
-      </div>
+              <button
+                onClick={() => {
+                  saveChannel({
+                    id: channelMeta.id,
+                    name: channelMeta.name,
+                    url: url,
+                    thumbnail: channelMeta.thumbnail,
+                    lastAnalyzed: new Date().toISOString(),
+                  });
+                  setSaved(true);
+                  onSave();
+                }}
+                className={`text-xs px-3 py-1.5 rounded-md border transition-colors ${
+                  saved
+                    ? "border-green-500/30 text-green-400 bg-green-500/10"
+                    : "border-white/10 text-neutral-400 hover:text-white hover:border-white/20"
+                }`}
+              >
+                {saved ? "✓ Saved" : "+ Save Channel"}
+              </button>
+            </div>
+          )}
+          {comparing && videos2.length > 0 && channelMeta && channelMeta2 && (
+            <ComparisonTable
+              channel1={channelMeta}
+              channel2={channelMeta2}
+              videos1={sortedVideos}
+              videos2={videos2}
+            />
+          )}
+
+          <VideoChart
+            videos={sortedVideos}
+            videos2={comparing ? videos2 : undefined}
+            channel1={channelMeta ?? undefined}
+            channel2={channelMeta2 ?? undefined}
+          />
+          <VideoTable videos={sortedVideos} />
+        </div>
+      ) : null}
     </>
   );
 }
