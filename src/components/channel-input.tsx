@@ -17,7 +17,7 @@ import {
   resolveHandle,
   searchChannelByName,
 } from "@/lib/youtube";
-import { ChartBar } from "lucide-react";
+import { ChartBar, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import ComparisonTable from "./comparison-table";
 import { Skeleton } from "./ui/skeleton";
@@ -215,7 +215,7 @@ export default function ChannelInput({
               disabled={loading}
               className="hover:opacity-85 text-white font-medium px-5"
             >
-              {loading ? loadingStep : "Analyze"}
+              {loading ? <Loader2 color="white" size={20} className="animate-spin" /> : "Analyze"}
             </Button>
           </div>
           {comparing && (
