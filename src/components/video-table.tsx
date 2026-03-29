@@ -137,7 +137,7 @@ export default function VideoTable({ videos }: { videos: Video[] }) {
                 <td>{format(video.statistics.viewCount)}</td>
                 <td>{format(video.statistics.likeCount)}</td>
                 <td>{format(video.statistics.commentCount)}</td>
-                <td>{engagementRate}%</td>
+                <td>{engagementRate}</td>
                 <td>
                   <span className="font-semibold text-white tabular-nums">
                     {format(video.score)}
