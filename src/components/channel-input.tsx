@@ -208,14 +208,6 @@ export default function ChannelInput({
               onChange={(e) => setUrl(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
             />
-            {url && (
-              <button
-                onClick={() => setUrl("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white"
-              >
-                ✕
-              </button>
-            )}
             <Button
               onClick={() => handleAnalyze()}
               disabled={loading}
